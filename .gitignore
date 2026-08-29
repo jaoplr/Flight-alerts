@@ -1,0 +1,12 @@
+# Ambiente virtual
+venv/
+__pycache__/
+*.pyc
+
+# Estado/execução local — não faz sentido versionar
+state.json
+log.txt
+
+# NUNCA versionar chaves e credenciais
+*.key
+*.pem
