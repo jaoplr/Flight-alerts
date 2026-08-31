@@ -1,3 +1,2 @@
-fast-flights==2.2
+google-flights-search
 requests
-typing_extensions

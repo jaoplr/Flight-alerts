@@ -31,7 +31,7 @@ ROUTES = [
         "date": "2026-10-21",
         "return_date": "2026-10-25",
         "max_price": 700,
-        "max_stops": None,
+        "max_stops": 0,
     },
     # {
     #     "label": "SSA -> LIS",

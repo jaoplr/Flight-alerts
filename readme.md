@@ -1,10 +1,19 @@
 # Alerta de preços de voo (Google Flights → ntfy)
 
-Script que consulta o Google Flights (via biblioteca não-oficial `fast-flights`,
-sem API key) e avisa por notificação ntfy o preço mais barato encontrado —
-a cada execução, mesmo que esteja acima do limite. Quando o preço está
-dentro do limite definido, a notificação vem com prioridade **urgente** e
-o título "🚨 ALERTA PREÇO ABAIXO DO QUE VC DESEJA!".
+Script que consulta o Google Flights (via biblioteca não-oficial
+`fast-flights`, sem API key) e avisa por notificação ntfy o preço mais
+barato encontrado — a cada execução, mesmo que esteja acima do limite.
+Quando o preço está dentro do limite definido, a notificação vem com
+prioridade **urgente** e o título "🚨 ALERTA PREÇO ABAIXO DO QUE VC DESEJA!".
+
+**Limitação conhecida**: essa lib reproduz a aba **"Melhor opção"** do
+Google Flights, que pode ficar um pouco acima do preço da aba "Menores
+preços" (essa última inclui ofertas de agências de viagem que não
+aparecem na aba padrão). Já tentamos migrar para uma lib que acessa a
+aba "Menores preços" de verdade (`flights`/`fli`), mas ela exige
+parâmetros de sessão internos do Google que não conseguimos reproduzir
+de forma confiável — voltamos pra essa abordagem mais simples e
+comprovadamente estável. Ver seção "Observações importantes".
 
 **Status: já implantado e rodando sozinho** na VPS (Oracle Cloud, Oracle
 Linux 9), via cron, a cada 3 horas — não depende do seu PC estar ligado.
@@ -15,8 +24,9 @@ Linux 9), via cron, a cada 3 horas — não depende do seu PC estar ligado.
   dia: rotas monitoradas (origem, destino, data, preço máximo, escala) e
   o tópico ntfy.
 - `monitor.py` — a lógica em si. Usa `fast-flights==2.2` (versão travada
-  no `requirements.txt` porque a VPS roda Python 3.9, e versões mais
-  novas da lib exigem Python 3.10+).
+  no `requirements.txt` porque a VPS roda **Python 3.9** — o `python3`
+  padrão do sistema —, e versões mais novas da lib exigem Python 3.10+).
+  A venv foi criada com `python3 -m venv venv` (não `python3.11`).
 - `requirements.txt` — dependências.
 - Roda via cron na VPS: `0 */3 * * * cd /home/opc/flight-alert &&
   venv/bin/python3 monitor.py >> log.txt 2>&1` (a cada 3h, nas horas
@@ -90,6 +100,14 @@ com o `scp` (seção acima).
   parar de funcionar, o primeiro passo é checar se saiu uma versão nova
   compatível (`pip index versions fast-flights` na VPS, considerando
   que ela está presa no Python 3.9).
+- **Por que não usamos a aba "Menores preços"**: tentamos a lib
+  `flights`/`fli`, que suporta isso nativamente, mas ela fala direto com
+  uma API interna do Google que exige parâmetros de sessão (tipo um "ID
+  de build") que não são só cookies — sem eles, a API retorna um erro
+  genérico. Não é algo razoável de reverse-engineer às cegas, então
+  ficamos com a limitação da aba "Melhor opção" mesmo. O `python3.11`
+  ficou instalado na VPS desse teste (não atrapalha nada, pode ignorar
+  ou remover com `sudo dnf remove python3.11` se quiser limpar).
 - **Notificação a cada execução**: diferente de um alerta "só quando
   cai", esse script sempre notifica, com urgência diferente conforme o
   preço. Se achar chato demais, é só aumentar o intervalo no cron (ex:
