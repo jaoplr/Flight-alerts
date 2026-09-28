@@ -28,11 +28,20 @@ ROUTES = [
         "label": "SSA -> RJ(GIG)",       # nome livre, só pra você identificar no alerta
         "from_airport": "SSA",
         "to_airport": "GIG",
-        "date": "2026-10-21",
-        "return_date": "2026-10-25",
+        "date": "2026-10-22",
+        "return_date": "2026-10-27",
         "max_price": 700,
         "max_stops": 0,
     },
+    {
+            "label": "SSA -> FORTAL",       # nome livre, só pra você identificar no alerta
+            "from_airport": "SSA",
+            "to_airport": "FOR",
+            "date": "2026-12-18",
+            "return_date": "2026-12-22",
+            "max_price": 700,
+            "max_stops": 0,
+        },
     # {
     #     "label": "SSA -> LIS",
     #     "from_airport": "SSA",

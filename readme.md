@@ -1,19 +1,15 @@
 # Alerta de preços de voo (Google Flights → ntfy)
 
-Script que consulta o Google Flights (via biblioteca não-oficial
-`fast-flights`, sem API key) e avisa por notificação ntfy o preço mais
+Script que consulta o Google Flights (via lib `google-flights-search` /
+`gf_search`, sem API key) e avisa por notificação ntfy o preço mais
 barato encontrado — a cada execução, mesmo que esteja acima do limite.
 Quando o preço está dentro do limite definido, a notificação vem com
 prioridade **urgente** e o título "🚨 ALERTA PREÇO ABAIXO DO QUE VC DESEJA!".
 
-**Limitação conhecida**: essa lib reproduz a aba **"Melhor opção"** do
-Google Flights, que pode ficar um pouco acima do preço da aba "Menores
-preços" (essa última inclui ofertas de agências de viagem que não
-aparecem na aba padrão). Já tentamos migrar para uma lib que acessa a
-aba "Menores preços" de verdade (`flights`/`fli`), mas ela exige
-parâmetros de sessão internos do Google que não conseguimos reproduzir
-de forma confiável — voltamos pra essa abordagem mais simples e
-comprovadamente estável. Ver seção "Observações importantes".
+Pega o preço real da aba **"Menores preços"** do site (não só "Melhor
+opção") — confirmado manualmente: bateu exatamente R$1007 com o que o
+navegador mostrava, incluindo ofertas de agências de viagem que uma
+abordagem mais simples de scraping não pegava.
 
 **Status: já implantado e rodando sozinho** na VPS (Oracle Cloud, Oracle
 Linux 9), via cron, a cada 3 horas — não depende do seu PC estar ligado.
@@ -23,13 +19,19 @@ Linux 9), via cron, a cada 3 horas — não depende do seu PC estar ligado.
 - `config.py` — único arquivo que você deveria precisar editar no dia a
   dia: rotas monitoradas (origem, destino, data, preço máximo, escala) e
   o tópico ntfy.
-- `monitor.py` — a lógica em si. Usa `fast-flights==2.2` (versão travada
-  no `requirements.txt` porque a VPS roda **Python 3.9** — o `python3`
-  padrão do sistema —, e versões mais novas da lib exigem Python 3.10+).
-  A venv foi criada com `python3 -m venv venv` (não `python3.11`).
-- `requirements.txt` — dependências.
+- `monitor.py` — a lógica em si. Usa a lib `google-flights-search`
+  (`gf_search`), que exige **Python 3.10+** — por isso a VPS tem uma
+  venv separada `venv311` (criada com `python3.11 -m venv venv311`),
+  diferente da venv padrão do sistema (que continua em Python 3.9).
+  Chamamos a lib de forma customizada (não a função `search()` pronta
+  dela) porque por padrão ela vem fixada em TWD/chinês — sobrescrevemos
+  com `hl=pt-BR`, `gl=BR`, `curr=BRL` e um parâmetro `tfu` específico
+  que força os dados da aba "Menores preços". Detalhes nos comentários
+  do próprio `monitor.py`.
+- `requirements.txt` — dependências (`google-flights-search`, `requests`
+  — não precisa de `playwright`, só usamos o modo SSR simples da lib).
 - Roda via cron na VPS: `0 */3 * * * cd /home/opc/flight-alert &&
-  venv/bin/python3 monitor.py >> log.txt 2>&1` (a cada 3h, nas horas
+  venv311/bin/python3 monitor.py >> log.txt 2>&1` (a cada 3h, nas horas
   cheias: 00h, 03h, 06h, 09h, 12h, 15h, 18h, 21h no horário da VPS —
   confirme o fuso da VPS com `timedatectl`).
 
@@ -55,14 +57,24 @@ Aí sim é preciso entrar na VPS:
 ssh -i "C:\Users\johnn\Downloads\ssh-key-2026-08-29 (1).key" opc@168.75.82.60
 ```
 
+Depois que o prompt virar `[opc@instance-...]$`, entre na pasta do
+projeto e ative o venv certo (Python 3.11, não o padrão do sistema):
+
+```bash
+cd flight-alert
+source venv311/bin/activate
+```
+
 - Editar `monitor.py`: edite local, `scp` igual ao `config.py` acima, e
-  se mudou dependências rode `source venv/bin/activate && pip install -r
-  requirements.txt` na VPS.
+  se mudou dependências rode `pip install -r requirements.txt` (com o
+  venv311 já ativado) na VPS.
 - Editar o agendamento do cron: `crontab -e` (use `export EDITOR=nano`
-  antes se preferir nano em vez de vim). Ver agendamento atual:
-  `crontab -l`.
+  antes se preferir nano em vez de vim — no nano, salva com Ctrl+O,
+  Enter, sai com Ctrl+X; no vim, `i` pra editar, `Esc` depois `:wq` pra
+  salvar e sair). Ver agendamento atual: `crontab -l`.
 - Ver o log de execuções: `tail -f log.txt` (Ctrl+C pra sair).
-- Testar manualmente: `source venv/bin/activate && python3 monitor.py`.
+- Testar manualmente: `source venv311/bin/activate && python3
+  monitor.py`.
 
 ## Pausar ou desativar
 
@@ -95,22 +107,40 @@ com o `scp` (seção acima).
 
 ## Observações importantes
 
-- **Sem API oficial**: o `fast-flights` faz scraping da página do
-  Google Flights. Pode quebrar se o Google mudar o layout — se um dia
-  parar de funcionar, o primeiro passo é checar se saiu uma versão nova
-  compatível (`pip index versions fast-flights` na VPS, considerando
-  que ela está presa no Python 3.9).
-- **Por que não usamos a aba "Menores preços"**: tentamos a lib
-  `flights`/`fli`, que suporta isso nativamente, mas ela fala direto com
-  uma API interna do Google que exige parâmetros de sessão (tipo um "ID
-  de build") que não são só cookies — sem eles, a API retorna um erro
-  genérico. Não é algo razoável de reverse-engineer às cegas, então
-  ficamos com a limitação da aba "Melhor opção" mesmo. O `python3.11`
-  ficou instalado na VPS desse teste (não atrapalha nada, pode ignorar
-  ou remover com `sudo dnf remove python3.11` se quiser limpar).
+- **Sem API oficial**: o `gf_search` lê os dados que o Google já embute
+  na própria página (SSR), sem precisar de navegador headless. Pode
+  quebrar se o Google mudar o formato da página — a lib documenta que
+  isso pode acontecer a qualquer momento.
+- **Rótulo de moeda com bug conhecido**: o campo `price` que a lib
+  retorna vem sempre com o texto `"TWD ..."` na frente, mesmo pedindo
+  `curr=BRL` — é um bug de rótulo fixo no código deles, mas o **número**
+  já vem correto na moeda pedida (confirmado manualmente). Por isso
+  ignoramos esse rótulo e só extraímos o número no `monitor.py`.
+- **Filtro de escalas embutido na busca**: a função `build_tfs()` da lib
+  não aceita restrição de escalas, então implementamos nossa própria
+  versão (`build_tfs_with_stops`, no topo do `monitor.py`) que adiciona
+  esse campo no protobuf antes de mandar pro Google. Isso importa porque
+  o Google só mostra certas ofertas (principalmente de agências) quando
+  a busca já pede "só direto" — filtrar depois, no nosso código, em cima
+  de uma busca sem essa restrição, não é a mesma coisa e pode perder a
+  oferta mais barata.
+- **Cache frio do Google**: às vezes a resposta vem sem a seção de
+  ofertas extras (comportamento documentado pela própria lib). Por isso
+  `cheapest_flight()` tenta até 3 vezes e junta os resultados de cada
+  tentativa antes de escolher o mais barato. Não elimina 100% a
+  inconsistência, mas reduz bastante — se ainda notar diferença grande
+  vs o navegador, dá pra aumentar esse número de tentativas no código.
+- **Memória**: essa versão consulta uma página SSR simples (não é
+  navegador headless), então não deve pesar mais que a versão anterior
+  — mesmo cuidado de RAM continua valendo (VPS com só 1GB + swap extra).
 - **Notificação a cada execução**: diferente de um alerta "só quando
   cai", esse script sempre notifica, com urgência diferente conforme o
   preço. Se achar chato demais, é só aumentar o intervalo no cron (ex:
   `0 */6 * * *` pra 6 em 6h).
 - **Preços de ida e volta**: se preencher `return_date` na rota, busca
   o pacote ida+volta; deixando `None`, busca só ida.
+- **Python 3.11 residual**: ficou instalado na VPS de um teste anterior
+  com outra lib que abandonamos. Não atrapalha nada rodando junto com o
+  3.9 padrão; pode remover com `sudo dnf remove python3.11` se quiser
+  limpar, mas cuidado — isso quebraria a venv `venv311` que este projeto
+  usa agora, então só remova se também recriar a venv de outra forma.
