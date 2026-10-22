@@ -25,32 +25,50 @@ NTFY_SERVER = "https://ntfy.sh"
 # max_stops: 0 = só voo direto | 1 = até 1 escala | None = sem restrição
 ROUTES = [
     {
-        "label": "SSA -> RJ(GIG)",       # nome livre, só pra você identificar no alerta
-        "from_airport": "SSA",
-        "to_airport": "GIG",
-        "date": "2026-10-22",
-        "return_date": "2026-10-27",
-        "max_price": 700,
-        "max_stops": 0,
-    },
-    {
-            "label": "SSA -> FORTAL",       # nome livre, só pra você identificar no alerta
+            "label": "SSA -> FORTAL (dez)",       # nome livre, só pra você identificar no alerta
             "from_airport": "SSA",
             "to_airport": "FOR",
             "date": "2026-12-18",
             "return_date": "2026-12-22",
             "max_price": 700,
             "max_stops": 0,
+        },      
+    {
+            "label": "SSA -> RJ (ida)",       # nome livre, só pra você identificar no alerta
+            "from_airport": "SSA",
+            "to_airport": "GIG",
+            "date": "2026-11-18",
+            "return_date": None,
+            "max_price": 700,
+            "max_stops": 0,
         },
-    # {
-    #     "label": "SSA -> LIS",
-    #     "from_airport": "SSA",
-    #     "to_airport": "LIS",
-    #     "date": "2027-01-10",
-    #     "return_date": "2027-01-25",
-    #     "max_price": 3500,
-    #     "max_stops": 1,
-    # },
+    {
+            "label": "RJ -> SP (ida)",       # nome livre, só pra você identificar no alerta
+            "from_airport": "GIG",
+            "to_airport": "GRU",
+            "date": "2026-11-21",
+            "return_date": None,
+            "max_price": 200,
+            "max_stops": 0,
+        },
+    {
+            "label": "SP -> SSA (volta)",       # nome livre, só pra você identificar no alerta
+            "from_airport": "GRU",
+            "to_airport": "SSA",
+            "date": "2026-11-23",
+            "return_date": None,
+            "max_price": 700,
+            "max_stops": 0,
+        },
+    {
+            "label": "SSA -> PORTUGAL",       # nome livre, só pra você identificar no alerta
+            "from_airport": "SSA",
+            "to_airport": "LIS",
+            "date": "2027-01-12",
+            "return_date": "2027-01-22",
+            "max_price": 6000,
+            "max_stops": 0,
+        },  
 ]
 
 # ── Outras opções ────────────────────────────────────────────────────────
